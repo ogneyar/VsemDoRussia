@@ -1,0 +1,17 @@
+# database
+u1366210_russia.sql
+russia.sql
+/dumps
+
+# composer vendor dir
+/vendor
+
+/web
+
+/config
+
+/runtime
+
+.env
+
+/tests

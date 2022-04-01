@@ -1,0 +1,4 @@
+
+RewriteEngine on
+
+RewriteRule ^(.*)$  https://%{HTTP_HOST}/web/$1 [L,QSA]
