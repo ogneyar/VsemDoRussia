@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\grid\GridView;
+use yii\web\JsExpression;
 use kartik\dropdown\DropdownX;
 use app\models\User;
 use app\models\Parameter;
@@ -39,24 +40,25 @@ $this->params['breadcrumbs'][] = $this->title;
                 alert(com.message);
             })
     </script>
-
+    
     <style>
-    .SP_table {
-        /* border: 1px solid lightgrey; */
-        margin-bottom: 20px;
-    }
-    .SP_table td {
-        border: 1px solid lightgrey;
-        padding: 5px 10px;
-    }
-    .SP_table thead {
-        font-weight: 700;
-    }
-    .SP_table button {
-        border: 1px solid lightgrey;
-        padding: 5px 10px;
-        margin: 10px;
-    }
+        .SP_table {
+            /* border: 1px solid lightgrey; */
+            margin-bottom: 20px;
+        }
+        .SP_table td {
+            border: 1px solid lightgrey;
+            padding: 5px 10px;
+        }
+        .SP_table thead {
+            font-weight: 700;
+        }
+        .SP_table button {
+            border: 1px solid lightgrey;
+            padding: 5px 10px;
+            margin: 10px;
+            width: 120px;
+        }
     </style>
 
     <table class="SP_table">
@@ -86,11 +88,45 @@ $this->params['breadcrumbs'][] = $this->title;
                 $echo .= "<td>" . $value->fullName . "</td>";
                 $echo .= "<td>" . $value->partner->name . "</td>";
                 $echo .= "<td>" . $role . "</td>";
-                // $echo .= "<td>" . $value->subscriber->number_of_times . "</td>";
                 $echo .= "<td>" . $value->amount . "</td>";
-                $echo .= "<td><button>Действия</button></td>";
+                $echo .= Html::beginTag('td', ['class'=>'dropdown']) .
+                    Html::button('Действия <span class="caret"></span>', [
+                        'type'=>'button',
+                        'class'=>'btn btn-default',
+                        'data-toggle'=>'dropdown'
+                    ]) .
+                    DropdownX::widget([ 
+                        'items' => [
+                            [
+                                'label' => 'Членский взнос (мес.)',
+                                'url' => Url::to(['user/download-user-payment-by-months', 'id' => $value->user->id]),
+                                'linkOptions' => [
+                                    'onclick' => new JsExpression("
+                                        var months = prompt('Введите количество месяцев оплаты членского взноса:');
+                                        if (months) {
+                                            if (!months.match(/^\d+$/)) {
+                                                alert('Ошибка при вводе количества месяцев!');
+                                                return false; 
+                                            }
+                                            window.location.href = $(this).attr('href') + '&months=' + months;
+                                        }
+                                        return false; 
+                                    "),
+                                ]
+                            ],
+                        ],
+                    ]) .
+                Html::endTag('td');
                 if ($value->subscriber->number_of_times) $echo .= "<td>Долг</td>";
-                else $echo .= "<td>Нет долга</td>";
+                else $echo .= "<td>
+                    <button 
+                        data-deletename='$value->fullName' 
+                        data-deleteid='$value->id' 
+                        class='button_delete_subscriber_message'
+                    >
+                        Нет долга
+                    </button>
+                </td>";
                 if ($value->subscriber->number_of_times >= 3) $echo .= "<td>Исключить<br />контрагента</td>";
                 else $echo .= "<td>&nbsp;</td>";
                 $echo .= "</tr>";
@@ -100,54 +136,14 @@ $this->params['breadcrumbs'][] = $this->title;
         </tbody>
     </table>
 
-    
-    <?php
-    // echo GridView::widget([ 
-    //     'dataProvider' => $dataProvider,
-    //     'columns' => [
-    //         ['class' => 'yii\grid\SerialColumn'],
-
-    //         'created_at',
-    //         'amount',
-    //         'fullName',
-    //         'visible',
-    //         'number_of_times',
-
-    //         [
-    //             'class' => 'yii\grid\ActionColumn',
-    //             'template' => '{actions}',
-    //             'buttons' => [
-    //                 'actions' => function ($url, $model) {
-    //                     if ($model->amount < User::SUBSCRIBER_MONTHS_INTERVAL * (int) Parameter::getValueByName('subscriber-payment')) {
-    //                         $items = [
-    //                             [
-    //                                 'label' => 'Членский взнос (мес.)',
-    //                                 'url' => Url::to(['user/download-user-payment-by-quarter', 'id' => $model->user->id, 'months' => (int) ($model->amount / (int) Parameter::getValueByName('subscriber-payment'))]),
-    //                             ],
-    //                         ];
-    //                     } else {
-    //                         $items = [
-    //                             [
-    //                                 'label' => 'Членский взнос (кв-л)',
-    //                                 'url' => Url::to(['user/download-user-payment-by-quarter', 'id' => $model->user->id]),
-    //                             ],
-    //                         ];
-    //                     }
-    //                     return Html::beginTag('div', ['class'=>'dropdown']) .
-    //                         Html::button('Действия <span class="caret"></span>', [
-    //                             'type'=>'button',
-    //                             'class'=>'btn btn-default',
-    //                             'data-toggle'=>'dropdown'
-    //                         ]) .
-    //                         DropdownX::widget([
-    //                         'items' => $items,
-    //                     ]) .
-    //                     Html::endTag('div');
-    //                 }
-    //             ],
-    //         ],
-    //     ],
-    // ]); 
-    ?>
+    <script>
+        let elements = document.getElementsByClassName("button_delete_subscriber_message")
+        for (let i = 0; i < elements.length; i++) {
+            elements[i]?.addEventListener("click", async function() {
+                var yes = confirm(`Вы уверенны, что хотите исключить ${this.dataset.deletename} из таблицы до нового периода?`);
+                if (yes) window.location.href = `<?=$web?>/site/run/delete-record-subscriber-messages?id=${this.dataset.deleteid}&return=<?=$web?>/admin/subscriber-payment`;
+            })
+        }
+    </script>
 
 </div>
